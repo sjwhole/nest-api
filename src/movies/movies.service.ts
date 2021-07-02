@@ -1,40 +1,36 @@
+import { Model } from 'mongoose';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Movie, MovieDocument } from './schemas/moive.schema';
 import { createMovieDto } from './dto/create-movie.dto';
 import { updateMovieDto } from './dto/update-movie.dto';
-import { Movie } from './entities/movie.entity';
 
 @Injectable()
 export class MoviesService {
-  private movies: Movie[] = [];
+  constructor(
+    @InjectModel(Movie.name) private movieModel: Model<MovieDocument>,
+  ) {}
 
-  getAll(): Movie[] {
-    return this.movies;
+  async findAll(): Promise<Movie[]> {
+    return this.movieModel.find().exec();
   }
 
-  getOne(id: number): Movie {
-    const movie = this.movies.find((movie) => movie.id === +id);
-    if (!movie) {
-      throw new NotFoundException(`Movie id=${id} not found.`);
-    }
-    return movie;
+  async findOne(id: string): Promise<Movie> {
+    return await this.movieModel.findById(id).exec();
   }
 
-  deleteOne(id: number): boolean {
-    this.getOne(id);
-    this.movies = this.movies.filter((movie) => movie.id !== +id);
-    return true;
+  async create(createMovieDto: createMovieDto): Promise<Movie> {
+    return await new this.movieModel({
+      ...createMovieDto,
+      createdAt: new Date(),
+    }).save();
   }
 
-  create(movieData: createMovieDto) {
-    this.movies.push({
-      id: this.movies.length + 1,
-      ...movieData,
-    });
+  async update(id: string, updateMovieDto: updateMovieDto): Promise<Movie> {
+    return await this.movieModel.findByIdAndUpdate(id, updateMovieDto).exec();
   }
 
-  update(id: number, movieData: updateMovieDto) {
-    const movie = this.getOne(id);
-    this.deleteOne(id);
-    this.movies.push({ ...movie, ...movieData });
+  async deleteOne(id: string): Promise<Movie> {
+    return await this.movieModel.findByIdAndDelete(id).exec();
   }
 }
